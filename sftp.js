@@ -5,6 +5,7 @@
   module.exports = function(RED) {
     var SFTPCredentialsNode, SFTPNode;
 	var Client = require('ssh2-sftp-client');
+	var fs = require('file-system');
 
     SFTPCredentialsNode = function(config) {
 
@@ -18,6 +19,7 @@
 	  this.port = config.port;
 	  this.username = config.username;
 	  this.password = config.password;
+		this.privateKey = config.key;
 
       //return this.host = config.host;
     };
@@ -55,12 +57,25 @@
 
 			if(debug) {node.warn(node);}
 
-			sftp.connect({
+			var config = {
 				host: node.server.host,
 				port: node.server.port,
-				username: node.server.username,
-				password: node.server.password
-			}).then(() => {
+				username: node.server.username
+			};
+			if(node.server.password){
+				config.password = node.server.password;
+			}
+			else{
+				try{
+					key = fs.readFileSync(node.server.privateKey);
+					config.privateKey = key;
+				}
+				catch(e){
+					console.error(e);
+				}
+			}
+
+			sftp.connect(config).then(() => {
 
 				this.method = msg.method || node.method;
 				this.remoteFilePath = msg.remoteFilePath || node.remoteFilePath;
